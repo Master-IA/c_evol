@@ -4,7 +4,7 @@ from funcs import FUNC_DICT
 INV_THRESHOLD = 0.001
 LOG_THRESHOLD = 0.001
 
-SYMBOL = 'Y'
+SYMBOL = 'x'
 
 FUNC_AR1_LIST = ['inv', 'log']
 FUNC_AR2_LIST = ['add', 'sub', 'mul']

@@ -16,11 +16,11 @@ class Func():
 		return self.operator(*args)
 
 
-def safe_inv(x1,x2=None):
-	return x1 if np.abs(x1) <= INV_THRESHOLD else 1/x1
+def safe_inv(x1,x2=None):	
+	return np.where(np.abs(x1) > INV_THRESHOLD, 1/x1, x1)
 
 def safe_log(x1,x2=None):
-	return x1 if np.log(x1) <= LOG_THRESHOLD else 0
+	return np.where(np.abs(x1) > LOG_THRESHOLD, np.log(np.abs(x1)), 0)
 
 # mejor usar un diccionario, no se puede indexar un enum por numero cuando no tienen valores numericos
 """class Func_Enum(Enum):
