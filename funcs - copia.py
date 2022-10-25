@@ -1,4 +1,3 @@
-from hashlib import new
 from os import defpath
 from pprint import pprint
 from re import X
@@ -33,7 +32,7 @@ depth=0
 
 ERROR_FUNC = rmse
 # para penalizar tamaños grandes de arbol en fitness
-FIT_ADJUST_SIZE = 0. #0.01
+FIT_ADJUST_SIZE = 0.02
 
 def random_terminal():
 	if random.random()<PROB_SYMBOL:
@@ -64,6 +63,7 @@ def gen_tree(depth=0):
 	return n1		
 
 def mutation_element(tree):
+	tree = deepcopy(tree)
 	node=np.random.choice(tree.preorder[0:])
 	if node.is_func():
 		if node.arity()==2:
@@ -72,11 +72,11 @@ def mutation_element(tree):
 				node.val=random.choice(FUNC_AR1_LIST)
 	else:
 		node.val=random_terminal()
-	return softcast([tree])
+	return tree
 
 def mutation_tree(tree):
-	#tree.pprint()
-	node_parent=tree.preorder[random.randint(1,len(tree.preorder)-1)]
+	tree = deepcopy(tree)
+	node_parent=np.random.choice(tree.preorder[1:])
 	node_parent.val=random.choice(FUNC_LIST)
 
 	node_parent.left=gen_tree(random.randint(MIN_DEPTH+1,MAX_DEPTH))
@@ -84,31 +84,36 @@ def mutation_tree(tree):
 		node_parent.right=gen_tree(random.randint(MIN_DEPTH+1,MAX_DEPTH))
 	else:
 		node_parent.right=None
-	#tree.pprint()
-	return softcast([tree])
+	return tree
 
 def crossover(tree1,tree2):
-	tree1,tree2=deepcopy(tree1),deepcopy(tree2)
+	tree1, tree2 = deepcopy(tree1), deepcopy(tree2)
 
-	node1=tree1.preorder[random.randint(1,len(tree1.preorder)-1)]
-	node2=tree2.preorder[random.randint(1,len(tree2.preorder)-1)]
-
+	node1=np.random.choice(tree1.preorder[1:])
+	node2=np.random.choice(tree2.preorder[1:])
 	
 	node1.val,node2.val=node2.val,node1.val
 	node1.right,node2.right=node2.right,node1.right
 	node1.left,node2.left=node2.left,node1.left
-	sol=softcast([tree1,tree2])
-	return softcast([tree1,tree2])
+	return tree1,tree2
 	
 def eval_fitness(tree, x, y, w=None):
     y_pred = tree.calculate_recursive(x)
-
     return ERROR_FUNC(y,y_pred,w=w)*(1+FIT_ADJUST_SIZE*tree.size)
 
 eval_fitness_vec=np.vectorize(eval_fitness, excluded=('x','y','w'))
 
+def fill_K_best(P, fitness,Pe):
+	return P[np.argpartition(fitness, Pe)[:Pe]]
 
-
+def tournament(P, fitness, K, N):
+	l=len(fitness)
+	winners = []
+	for i in range(N):		
+		idx = np.random.randint(0,l,size=K)
+		winner=P[np.argmin(fitness[idx])]
+		winners.append(winner)
+	return np.fromiter(winners, dtype=GPTree)
 
 
 def target_func(x): # para probar si funciona, funcion facil
@@ -132,59 +137,39 @@ def generate_dataset(): # generate 101 data points from target_func
 #print(y.shape)
 x, y = generate_dataset()
 
-M = 10
-elitism=0.2
+M = 100
+tourn = 0.03
+elitism = 0.2
 Pe = int(elitism*M)
-K = 2
+K = int(tourn*M)
 
-
-P = np.array([gen_tree() for i in range(M)], dtype=object)
+P = np.fromiter([gen_tree() for i in range(M)], dtype=GPTree)
 fitness = eval_fitness_vec(P, x=x, y=y)
-
-def softcast(P):
-	pop_casted=np.empty(len(P),dtype=object)
-	pop_casted[:]=P[:]
-
-	return pop_casted
-def fill_K_best(trees,fitness,K):
-	idx=np.argsort(fitness)
-	t=np.array(trees[idx[:K]],dtype=object)
-	return softcast(t)
-
-def tournament(population,fitness,K,N):
-    parents = []
-
-    for i in range(N):
-        idx = random.sample(range(population.shape[0]), K)
-        winner=population[idx[np.argmin(fitness[idx])]]
-        parents.append(winner)
-    return softcast(parents)
-
-print(fitness)
-for j in range(100):
-
+for j in range(50):
 	new_P = []
-	new_P.extend(fill_K_best(P,fitness,K))
-	P_tournament=tournament(P,fitness,K,M-Pe)
-	i=0
+	P_elite = fill_K_best(P, fitness, Pe)
+	new_P.extend(P_elite)
+	P_tournament = tournament(P, fitness, K, M-Pe)
+	i = 0
 	while len(new_P) < M:
 		if random.random() < PROB_CROSS and i<(M-Pe)-1:
 			new_P.extend(crossover(P_tournament[i], P_tournament[i+1]))
 			i += 2
 		elif random.random() < PROB_MUT_TREE:
-			new_P.extend(mutation_tree(P_tournament[i]))
+			new_P.append(mutation_tree(P_tournament[i]))
 			i += 1
 		elif random.random() < PROB_MUT_ELEMENT:
-			new_P.extend(mutation_element(P_tournament[i]))
+			new_P.append(mutation_element(P_tournament[i]))
 			i += 1
 		else:
-			new_P.extend(softcast([P_tournament[i]]))
+			new_P.append(P_tournament[i])
 			i += 1
-	P = softcast(new_P)
+	P = np.fromiter(new_P, dtype=GPTree)
 	fitness = eval_fitness_vec(P, x=x, y=y)
-	print(fitness)
+best_f_ind = np.argmin(fitness)
 
-
+print(P[best_f_ind])
+print(fitness[best_f_ind])
 
 
 
