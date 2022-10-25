@@ -5,6 +5,10 @@ from arbol import *
 import numpy as np
 import random
 import pandas as pd
+import warnings
+
+# esto para quitar warnings de np.arrays de Nodes
+warnings.filterwarnings("ignore", category=np.VisibleDeprecationWarning) 
 
 def mae(y, y_pred, w=None):
     return np.average(np.abs(y-y_pred), weights=w)
@@ -15,7 +19,12 @@ def mse(y, y_pred, w=None):
 def rmse(y, y_pred, w=None):
     return np.sqrt(mse(y, y_pred, w=w))
 
+PROB_FUNCTION=0.5
 PROB_SYMBOL=0.5
+
+PROB_CROSS=0.02
+PROB_MUT_TREE=0.02
+PROB_MUT_ELEMENT=0.02
 
 MAX_DEPTH=3
 MIN_DEPTH=2
@@ -43,7 +52,7 @@ def gen_tree(depth=0):
 	elif depth>=MAX_DEPTH:
 		n1 = GPTree(random_terminal())
 	else:
-		if random.random()<0.5:
+		if random.random()<PROB_FUNCTION:
 			n1 = GPTree(random.choice(FUNC_LIST))
 		else:
 			n1 = GPTree(random_terminal())
@@ -54,7 +63,7 @@ def gen_tree(depth=0):
 	return n1		
 
 def mutation_element(tree):
-	node=tree.preorder[random.randint(0,len(tree.preorder)-1)]
+	node=np.random.choice(tree.preorder[0:])
 	if node.is_func():
 		if node.arity()==2:
 				node.val=random.choice(FUNC_AR2_LIST)
@@ -66,7 +75,7 @@ def mutation_element(tree):
 
 def mutation_tree(tree):
 	#tree.pprint()
-	node_parent=tree.preorder[random.randint(1,len(tree.preorder)-1)]
+	node_parent=np.random.choice(tree.preorder[1:])
 	node_parent.val=random.choice(FUNC_LIST)
 
 	node_parent.left=gen_tree(random.randint(MIN_DEPTH+1,MAX_DEPTH))
@@ -78,8 +87,9 @@ def mutation_tree(tree):
 	return tree
 
 def crossover(tree1,tree2):
-	node1=tree1.preorder[random.randint(1,len(tree1.preorder)-1)]
-	node2=tree2.preorder[random.randint(1,len(tree2.preorder)-1)]
+	node1=np.random.choice(tree1.preorder[1:])
+	node2=np.random.choice(tree2.preorder[1:])
+	
 	node1.val,node2.val=node2.val,node1.val
 	node1.right,node2.right=node2.right,node1.right
 	node1.left,node2.left=node2.left,node1.left
@@ -89,11 +99,12 @@ def eval_fitness(tree, x, y, w=None):
     y_pred = tree.calculate_recursive(x)
     return ERROR_FUNC(y,y_pred,w=w)*(1+FIT_ADJUST_SIZE*tree.size)
 
+eval_fitness_vec=np.vectorize(eval_fitness, excluded=('x','y','w'))
 
-def tournament(trees,fitness,K,elitism):
-	l=len(trees)
+def tournament(fitness, K, N):
+	l=len(fitness)
 	winners = []
-	for i in range(int(len(trees)*(1-elitism))):		
+	for i in range(N):		
 		idx = np.random.randint(0,l,size=K)
 		value=np.argmin(fitness[idx])
 		winners.append(idx[value])
@@ -123,19 +134,35 @@ def generate_dataset(): # generate 101 data points from target_func
 x, y = generate_dataset()
 
 M = 10
-elitism=0.5
-K=2
+elitism=0.2
+Pe = int(elitism*M)
+K = 2
 
-P = [gen_tree() for i in range(M)]
-fitness = np.array([eval_fitness(tree,x,y) for tree in P])
+P = np.array([gen_tree() for i in range(M)], dtype=object)
+fitness = eval_fitness_vec(P, x=x, y=y)
 print(fitness)
 new_P = []
-P_elite = np.argpartition(fitness, int(elitism*M))[:int(elitism*M)]
+P_elite = P[np.argpartition(fitness, Pe)[:Pe]]
 new_P.extend(P_elite)
-P_tournament = tournament(P,fitness,K,elitism)
+P_tournament = P[tournament(fitness,K,M-Pe)]
 print(P_tournament)
-new_P.extend(P_tournament)
-print(new_P)
+i = 0
+while len(new_P) < M:
+	if random.random() < PROB_CROSS and i<(M-Pe)-1:
+		new_P.extend(crossover(P_tournament[i], P_tournament[i+1]))
+		i += 2
+	elif random.random() < PROB_MUT_TREE:
+		new_P.append(mutation_tree(P_tournament[i]))
+		i += 1
+	elif random.random() < PROB_MUT_ELEMENT:
+		new_P.append(mutation_element(P_tournament[i]))
+		i += 1
+	else:
+		new_P.append(P_tournament[i])
+		i += 1
+P = np.array(new_P, dtype=object)
+fitness = eval_fitness_vec(P, x=x, y=y)
+print(fitness)
 
 
 
