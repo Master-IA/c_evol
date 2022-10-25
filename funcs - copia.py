@@ -107,6 +107,7 @@ def tournament(fitness, K, N):
 	for i in range(N):		
 		idx = np.random.randint(0,l,size=K)
 		value=np.argmin(fitness[idx])
+		print(value,idx[value])
 		winners.append(idx[value])
 	return winners
 
@@ -141,28 +142,30 @@ K = 2
 P = np.array([gen_tree() for i in range(M)], dtype=object)
 fitness = eval_fitness_vec(P, x=x, y=y)
 print(fitness)
-new_P = []
-P_elite = P[np.argpartition(fitness, Pe)[:Pe]]
-new_P.extend(P_elite)
-P_tournament = P[tournament(fitness,K,M-Pe)]
-print(P_tournament)
-i = 0
-while len(new_P) < M:
-	if random.random() < PROB_CROSS and i<(M-Pe)-1:
-		new_P.extend(crossover(P_tournament[i], P_tournament[i+1]))
-		i += 2
-	elif random.random() < PROB_MUT_TREE:
-		new_P.append(mutation_tree(P_tournament[i]))
-		i += 1
-	elif random.random() < PROB_MUT_ELEMENT:
-		new_P.append(mutation_element(P_tournament[i]))
-		i += 1
-	else:
-		new_P.append(P_tournament[i])
-		i += 1
-P = np.array(new_P, dtype=object)
-fitness = eval_fitness_vec(P, x=x, y=y)
-print(fitness)
+for j in range(10):
+	new_P = []
+	P_elite = P[np.argpartition(fitness, Pe)[:Pe]]
+	new_P.extend(P_elite)
+	P_tournament = P[tournament(fitness,K,M-Pe)]
+	print(P_tournament)
+	i = 0
+	while len(new_P) < M:
+		if random.random() < PROB_CROSS and i<(M-Pe)-1:
+			new_P.extend(crossover(P_tournament[i], P_tournament[i+1]))
+			i += 2
+		elif random.random() < PROB_MUT_TREE:
+			new_P.append(mutation_tree(P_tournament[i]))
+			i += 1
+		elif random.random() < PROB_MUT_ELEMENT:
+			new_P.append(mutation_element(P_tournament[i]))
+			i += 1
+		else:
+			new_P.append(P_tournament[i])
+			i += 1
+	P = np.array(new_P, dtype=object)
+	fitness = eval_fitness_vec(P, x=x, y=y)
+	print('L_f',len(fitness))
+	print(j,fitness)
 
 
 
