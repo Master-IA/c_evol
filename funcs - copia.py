@@ -1,3 +1,4 @@
+from hashlib import new
 from os import defpath
 from pprint import pprint
 from re import X
@@ -6,7 +7,7 @@ import numpy as np
 import random
 import pandas as pd
 import warnings
-
+from copy import deepcopy
 # esto para quitar warnings de np.arrays de Nodes
 warnings.filterwarnings("ignore", category=np.VisibleDeprecationWarning) 
 
@@ -71,11 +72,11 @@ def mutation_element(tree):
 				node.val=random.choice(FUNC_AR1_LIST)
 	else:
 		node.val=random_terminal()
-	return tree
+	return softcast([tree])
 
 def mutation_tree(tree):
 	#tree.pprint()
-	node_parent=np.random.choice(tree.preorder[1:])
+	node_parent=tree.preorder[random.randint(1,len(tree.preorder)-1)]
 	node_parent.val=random.choice(FUNC_LIST)
 
 	node_parent.left=gen_tree(random.randint(MIN_DEPTH+1,MAX_DEPTH))
@@ -84,32 +85,29 @@ def mutation_tree(tree):
 	else:
 		node_parent.right=None
 	#tree.pprint()
-	return tree
+	return softcast([tree])
 
 def crossover(tree1,tree2):
-	node1=np.random.choice(tree1.preorder[1:])
-	node2=np.random.choice(tree2.preorder[1:])
+	tree1,tree2=deepcopy(tree1),deepcopy(tree2)
+
+	node1=tree1.preorder[random.randint(1,len(tree1.preorder)-1)]
+	node2=tree2.preorder[random.randint(1,len(tree2.preorder)-1)]
+
 	
 	node1.val,node2.val=node2.val,node1.val
 	node1.right,node2.right=node2.right,node1.right
 	node1.left,node2.left=node2.left,node1.left
-	return tree1,tree2
+	sol=softcast([tree1,tree2])
+	return softcast([tree1,tree2])
 	
 def eval_fitness(tree, x, y, w=None):
     y_pred = tree.calculate_recursive(x)
+
     return ERROR_FUNC(y,y_pred,w=w)*(1+FIT_ADJUST_SIZE*tree.size)
 
 eval_fitness_vec=np.vectorize(eval_fitness, excluded=('x','y','w'))
 
-def tournament(fitness, K, N):
-	l=len(fitness)
-	winners = []
-	for i in range(N):		
-		idx = np.random.randint(0,l,size=K)
-		value=np.argmin(fitness[idx])
-		print(value,idx[value])
-		winners.append(idx[value])
-	return winners
+
 
 
 
@@ -139,33 +137,54 @@ elitism=0.2
 Pe = int(elitism*M)
 K = 2
 
+
 P = np.array([gen_tree() for i in range(M)], dtype=object)
 fitness = eval_fitness_vec(P, x=x, y=y)
+
+def softcast(P):
+	pop_casted=np.empty(len(P),dtype=object)
+	pop_casted[:]=P[:]
+
+	return pop_casted
+def fill_K_best(trees,fitness,K):
+	idx=np.argsort(fitness)
+	t=np.array(trees[idx[:K]],dtype=object)
+	return softcast(t)
+
+def tournament(population,fitness,K,N):
+    parents = []
+
+    for i in range(N):
+        idx = random.sample(range(population.shape[0]), K)
+        winner=population[idx[np.argmin(fitness[idx])]]
+        parents.append(winner)
+    return softcast(parents)
+
 print(fitness)
-for j in range(10):
+for j in range(100):
+
 	new_P = []
-	P_elite = P[np.argpartition(fitness, Pe)[:Pe]]
-	new_P.extend(P_elite)
-	P_tournament = P[tournament(fitness,K,M-Pe)]
-	print(P_tournament)
-	i = 0
+	new_P.extend(fill_K_best(P,fitness,K))
+	P_tournament=tournament(P,fitness,K,M-Pe)
+	i=0
 	while len(new_P) < M:
 		if random.random() < PROB_CROSS and i<(M-Pe)-1:
 			new_P.extend(crossover(P_tournament[i], P_tournament[i+1]))
 			i += 2
 		elif random.random() < PROB_MUT_TREE:
-			new_P.append(mutation_tree(P_tournament[i]))
+			new_P.extend(mutation_tree(P_tournament[i]))
 			i += 1
 		elif random.random() < PROB_MUT_ELEMENT:
-			new_P.append(mutation_element(P_tournament[i]))
+			new_P.extend(mutation_element(P_tournament[i]))
 			i += 1
 		else:
-			new_P.append(P_tournament[i])
+			new_P.extend(softcast([P_tournament[i]]))
 			i += 1
-	P = np.array(new_P, dtype=object)
+	P = softcast(new_P)
 	fitness = eval_fitness_vec(P, x=x, y=y)
-	print('L_f',len(fitness))
-	print(j,fitness)
+	print(fitness)
+
+
 
 
 
