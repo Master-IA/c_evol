@@ -22,11 +22,14 @@ def rmse(y, y_pred, w=None):
 PROB_FUNCTION=0.5
 PROB_SYMBOL=0.5
 
-PROB_CROSS=0.02
-PROB_MUT_TREE=0.02
-PROB_MUT_ELEMENT=0.02
+PROB_CROSS=0.9
+PROB_MUT_TREE=0.01
+PROB_MUT_ELEMENT=0.01
+PROBS_TREE_OP = [PROB_CROSS, PROB_MUT_TREE, PROB_MUT_ELEMENT]
+PROBS_TREE_OP.append(1-sum(PROBS_TREE_OP))
 
-MAX_DEPTH=3
+CONST_RANGE=(0,5)
+MAX_DEPTH=10
 MIN_DEPTH=2
 depth=0
 
@@ -38,7 +41,7 @@ def random_terminal():
 	if random.random()<PROB_SYMBOL:
 		return SYMBOL
 	else:
-		return 5*random.random()
+		return np.random.uniform(CONST_RANGE[0],CONST_RANGE[1])
 		
 def random_tree():
 	return gen_tree(random.randint(MIN_DEPTH,MAX_DEPTH))
@@ -95,7 +98,8 @@ def crossover(tree1,tree2):
 	node1.val,node2.val=node2.val,node1.val
 	node1.right,node2.right=node2.right,node1.right
 	node1.left,node2.left=node2.left,node1.left
-	return tree1,tree2
+	#return np.fromiter([tree1,tree2], dtype=GPTree)
+	return [tree1, tree2]
 	
 def eval_fitness(tree, x, y, w=None):
     y_pred = tree.calculate_recursive(x)
@@ -137,9 +141,9 @@ def generate_dataset(): # generate 101 data points from target_func
 #print(y.shape)
 x, y = generate_dataset()
 
-M = 100
+M = 500
 tourn = 0.03
-elitism = 0.2
+elitism = 0.1
 Pe = int(elitism*M)
 K = int(tourn*M)
 
@@ -152,17 +156,18 @@ for j in range(50):
 	P_tournament = tournament(P, fitness, K, M-Pe)
 	i = 0
 	while len(new_P) < M:
-		if random.random() < PROB_CROSS and i<(M-Pe)-1:
+		tree_op = np.random.choice(range(4), p=PROBS_TREE_OP)
+		if tree_op == 0 and i<(M-Pe)-1:
 			new_P.extend(crossover(P_tournament[i], P_tournament[i+1]))
 			i += 2
-		elif random.random() < PROB_MUT_TREE:
+		elif tree_op == 1:
 			new_P.append(mutation_tree(P_tournament[i]))
 			i += 1
-		elif random.random() < PROB_MUT_ELEMENT:
+		elif tree_op == 2:
 			new_P.append(mutation_element(P_tournament[i]))
 			i += 1
 		else:
-			new_P.append(P_tournament[i])
+			new_P.append(deepcopy(P_tournament[i]))
 			i += 1
 	P = np.fromiter(new_P, dtype=GPTree)
 	fitness = eval_fitness_vec(P, x=x, y=y)
