@@ -7,6 +7,7 @@ import random
 import pandas as pd
 import warnings
 from copy import deepcopy
+
 # esto para quitar warnings de np.arrays de Nodes
 warnings.filterwarnings("ignore", category=np.VisibleDeprecationWarning) 
 
@@ -101,6 +102,8 @@ def crossover(tree1,tree2):
 	#return np.fromiter([tree1,tree2], dtype=GPTree)
 	return [tree1, tree2]
 	
+
+
 def eval_fitness(tree, x, y, w=None):
     y_pred = tree.calculate_recursive(x)
     return ERROR_FUNC(y,y_pred,w=w)*(1+FIT_ADJUST_SIZE*tree.size)
@@ -119,6 +122,23 @@ def tournament(P, fitness, K, N):
 		winners.append(winner)
 	return np.fromiter(winners, dtype=GPTree)
 
+def crossover_single(tree1):
+	tree1 = deepcopy(tree1)
+	tree2 = deepcopy(tournament(P, fitness, K, 1)[0])
+
+	node1=np.random.choice(tree1.preorder[1:])
+	node2=np.random.choice(tree2.preorder[1:])
+	
+	node1.val=node2.val
+	node1.right=node2.right
+	node1.left=node2.left
+	return tree1
+
+def tree_operate(tree):
+	tree_op = np.random.choice(
+		[crossover_single, mutation_tree, mutation_element, deepcopy], 
+		p=PROBS_TREE_OP)
+	return tree_op(tree)
 
 def target_func(x): # para probar si funciona, funcion facil
     return x*x*x*x + x*x*x + x*x + x + 1
@@ -141,34 +161,21 @@ def generate_dataset(): # generate 101 data points from target_func
 #print(y.shape)
 x, y = generate_dataset()
 
-M = 500
+M = 100
 tourn = 0.03
 elitism = 0.1
 Pe = int(elitism*M)
-K = int(tourn*M)
+K = min(1,int(tourn*M))
 
 P = np.fromiter([gen_tree() for i in range(M)], dtype=GPTree)
 fitness = eval_fitness_vec(P, x=x, y=y)
-for j in range(50):
+for j in range(20):
 	new_P = []
 	P_elite = fill_K_best(P, fitness, Pe)
 	new_P.extend(P_elite)
-	P_tournament = tournament(P, fitness, K, M-Pe)
-	i = 0
-	while len(new_P) < M:
-		tree_op = np.random.choice(range(4), p=PROBS_TREE_OP)
-		if tree_op == 0 and i<(M-Pe)-1:
-			new_P.extend(crossover(P_tournament[i], P_tournament[i+1]))
-			i += 2
-		elif tree_op == 1:
-			new_P.append(mutation_tree(P_tournament[i]))
-			i += 1
-		elif tree_op == 2:
-			new_P.append(mutation_element(P_tournament[i]))
-			i += 1
-		else:
-			new_P.append(deepcopy(P_tournament[i]))
-			i += 1
+	P_tournament = tournament(P, fitness, K, M-Pe)	
+	new_P.extend(tree_operate(tree) for tree in P_tournament)
+
 	P = np.fromiter(new_P, dtype=GPTree)
 	fitness = eval_fitness_vec(P, x=x, y=y)
 best_f_ind = np.argmin(fitness)
