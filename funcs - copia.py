@@ -6,7 +6,6 @@ import numpy as np
 import random
 import pandas as pd
 import warnings
-from copy import deepcopy
 
 # esto para quitar warnings de np.arrays de Nodes
 warnings.filterwarnings("ignore", category=np.VisibleDeprecationWarning) 
@@ -29,7 +28,7 @@ PROB_MUT_ELEMENT=0.01
 PROBS_TREE_OP = [PROB_CROSS, PROB_MUT_TREE, PROB_MUT_ELEMENT]
 PROBS_TREE_OP.append(1-sum(PROBS_TREE_OP))
 
-CONST_RANGE=(0,5)
+CONST_RANGE=(-2,2)
 MAX_DEPTH=10
 MIN_DEPTH=2
 depth=0
@@ -67,8 +66,8 @@ def gen_tree(depth=0):
 	return n1		
 
 def mutation_element(tree):
-	tree = deepcopy(tree)
-	node=np.random.choice(tree.preorder[0:])
+	tree = tree.clone()
+	node=np.random.choice(list(tree)[0:])
 	if node.is_func():
 		if node.arity()==2:
 				node.val=random.choice(FUNC_AR2_LIST)
@@ -79,8 +78,8 @@ def mutation_element(tree):
 	return tree
 
 def mutation_tree(tree):
-	tree = deepcopy(tree)
-	node_parent=np.random.choice(tree.preorder[1:])
+	tree = tree.clone()
+	node_parent=np.random.choice(list(tree)[1:])
 	node_parent.val=random.choice(FUNC_LIST)
 
 	node_parent.left=gen_tree(random.randint(MIN_DEPTH+1,MAX_DEPTH))
@@ -91,10 +90,10 @@ def mutation_tree(tree):
 	return tree
 
 def crossover(tree1,tree2):
-	tree1, tree2 = deepcopy(tree1), deepcopy(tree2)
+	tree1, tree2 = tree1.clone(), tree2.clone()
 
-	node1=np.random.choice(tree1.preorder[1:])
-	node2=np.random.choice(tree2.preorder[1:])
+	node1=np.random.choice(list(tree1)[1:])
+	node2=np.random.choice(list(tree2)[1:])
 	
 	node1.val,node2.val=node2.val,node1.val
 	node1.right,node2.right=node2.right,node1.right
@@ -102,7 +101,6 @@ def crossover(tree1,tree2):
 	#return np.fromiter([tree1,tree2], dtype=GPTree)
 	return [tree1, tree2]
 	
-
 
 def eval_fitness(tree, x, y, w=None):
     y_pred = tree.calculate_recursive(x)
@@ -123,11 +121,11 @@ def tournament(P, fitness, K, N):
 	return np.fromiter(winners, dtype=GPTree)
 
 def crossover_single(tree1):
-	tree1 = deepcopy(tree1)
-	tree2 = deepcopy(tournament(P, fitness, K, 1)[0])
+	tree1 = tree1.clone()
+	tree2 = tournament(P, fitness, K, 1)[0].clone()
 
-	node1=np.random.choice(tree1.preorder[1:])
-	node2=np.random.choice(tree2.preorder[1:])
+	node1=np.random.choice(list(tree1)[1:])
+	node2=np.random.choice(list(tree2)[1:])
 	
 	node1.val=node2.val
 	node1.right=node2.right
@@ -136,7 +134,7 @@ def crossover_single(tree1):
 
 def tree_operate(tree):
 	tree_op = np.random.choice(
-		[crossover_single, mutation_tree, mutation_element, deepcopy], 
+		[crossover_single, mutation_tree, mutation_element, GPTree.clone], 
 		p=PROBS_TREE_OP)
 	return tree_op(tree)
 
@@ -161,7 +159,8 @@ def generate_dataset(): # generate 101 data points from target_func
 #print(y.shape)
 x, y = generate_dataset()
 
-M = 100
+M = 1000
+generations = 25
 tourn = 0.03
 elitism = 0.1
 Pe = int(elitism*M)
@@ -169,7 +168,7 @@ K = min(1,int(tourn*M))
 
 P = np.fromiter([gen_tree() for i in range(M)], dtype=GPTree)
 fitness = eval_fitness_vec(P, x=x, y=y)
-for j in range(20):
+for j in range(generations):
 	new_P = []
 	P_elite = fill_K_best(P, fitness, Pe)
 	new_P.extend(P_elite)

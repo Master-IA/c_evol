@@ -72,5 +72,24 @@ class GPTree(Node):
                     terminals[-1] -= 1
                     output += ') '
         return output[:-1]
+    
+    def clone(self):        
+        other = GPTree(self.val)
 
+        stack1 = [self]
+        stack2 = [other]
 
+        while stack1 or stack2:
+            node1 = stack1.pop()
+            node2 = stack2.pop()
+
+            if node1.left is not None:
+                node2.left = GPTree(node1.left.val)
+                stack1.append(node1.left)
+                stack2.append(node2.left)
+
+            if node1.right is not None:
+                node2.right = GPTree(node1.right.val)
+                stack1.append(node1.right)
+                stack2.append(node2.right)
+        return other
