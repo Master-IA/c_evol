@@ -31,7 +31,7 @@ class GP():
                 prob_node_func=0.5,  
                 probs_tree_op=[0.9,0.01,0.01], 
                 error_fun=rmse, 
-                size_penalty=0, 
+                depth_penalty=0, 
                 calc_weights=False):
 
         self.M = M
@@ -44,7 +44,7 @@ class GP():
         self.prob_node_symb, self.prob_node_func = prob_node_symb, prob_node_func        
         self.probs_tree_op = probs_tree_op
         if len(probs_tree_op)<4: self.probs_tree_op.append(1-sum(probs_tree_op))
-        self.error_fun, self.size_penalty = error_fun, size_penalty
+        self.error_fun, self.depth_penalty = error_fun, depth_penalty
         self.calc_weights = calc_weights
 
         ar1_mask, ar2_mask = np.isin(self.func_list,FUNC_AR1_LIST), np.isin(self.func_list,FUNC_AR2_LIST)
@@ -155,7 +155,7 @@ class GP():
 
     def eval_fitness(self, tree, x, y, w=None):
         y_pred = tree.calculate_recursive(x)
-        return self.error_fun(y,y_pred,w=w)*(1+tree.size*self.size_penalty)
+        return self.error_fun(y,y_pred,w=w)*(1+tree.depth()*self.depth_penalty)
     
     def update_stats(self):
         best_ind = np.argmin(self.fitness)
