@@ -1,13 +1,25 @@
 from binarytree import Node
 from funcs import FUNC_DICT, FUNC_LIST
-
+from sympy import *
 INV_THRESHOLD = 0.001
 LOG_THRESHOLD = 0.001
 
 SYMBOL = 'x'
 
 """ Arbol """
-
+converter = {
+    'add': lambda x, y : x + y,
+    'sub': lambda x, y : x - y,
+    'mul': lambda x, y : x*y,
+    'div': lambda x, y : x/y,
+    'sqrt': lambda x : x**0.5,
+    'log': lambda x : sympy.log(x),
+    'abs': lambda x : abs(x),
+    'neg': lambda x : -x,
+    'inv': lambda x : 1/x,
+    'sin': lambda x : math.sin(x),
+    'cos': lambda x : math.cos(x),
+}
 class GPTree(Node):
     def __init__(self, value, left=None, right=None):
         super().__init__(value, left, right)
@@ -54,11 +66,16 @@ class GPTree(Node):
 
 # devuelve el arbol como una funcion de Lisp
 # pej 1+5*(1/x) -> add ( 1 mul ( inv ( x ) ) )
+
+
+#Formato aceptado por sympy
+#print(sympy.sympify('add(div(div(log(-0.183), abs(0.176)), abs(0.176)), add(div(div(log(-0.183), abs(0.176)), abs(0.176)), sqrt(mul(sqrt(neg(X0)), mul(max(-0.270, X0), log(-0.183))))))', locals=converter))
+
     def __str__(self):
         output, terminals = '', [0]
         for nod in self.preorder:
             if nod.is_func():
-                output += (str(nod.val) + '( ')
+                output += (str(nod.val) + '(')
                 terminals.append(nod.arity())
             else:
                 output += (str(nod.val) + ' ')
@@ -66,8 +83,9 @@ class GPTree(Node):
                 while terminals[-1] == 0:            
                     terminals.pop()
                     terminals[-1] -= 1
-                    output += ') '
-        return output[:-1]
+                    output += ')'
+
+        return sympify(output[:-1],locals=converter)
     
     def clone(self):        
         other = GPTree(self.val)

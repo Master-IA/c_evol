@@ -180,8 +180,8 @@ num_cores = multiprocessing.cpu_count()
 
 x, y = generate_dataset()
 
-M = 1000
-generations = 50
+M = 100
+generations = 5
 tourn = 0.03
 elitism = 0.1
 Pe = int(elitism*M)
