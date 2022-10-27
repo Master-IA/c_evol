@@ -1,11 +1,8 @@
-from os import defpath
-from pprint import pprint
-from re import X
 from funcs import FUNC_LIST, FUNC_AR1_LIST, FUNC_AR2_LIST
 from gptree import *
+from tqdm import tqdm 
 import numpy as np
 import random
-import pandas as pd
 
 def mae(y, y_pred, w=None):
     return np.average(np.abs(y-y_pred), weights=w)
@@ -177,14 +174,14 @@ class GP():
                 }
 
 
-    def execute(self, x, y, generations=100, resume=False):
+    def execute(self, x, y, generations=100, progressbar = True, resume=False):
         eval_fitness_vec=np.vectorize(self.eval_fitness, excluded=('x','y','w'))
         if not resume or (self.P is None or self.fitness is None):
             self.P = np.fromiter([self.gen_tree() for i in range(self.M)], dtype=GPTree)
             self.fitness = eval_fitness_vec(self.P, x=x, y=y)
             self.update_stats()
-
-        for i in range(generations):
+        range_gen = tqdm(range(int(generations)), desc="Progress") if progressbar else range(int(generations))
+        for i in range_gen:
             new_P = []
             P_elite = self.fill_K_best()
             new_P.extend(P_elite)
