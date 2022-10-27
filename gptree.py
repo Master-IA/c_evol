@@ -1,25 +1,12 @@
 from binarytree import Node
-from funcs import FUNC_DICT, FUNC_LIST
-from sympy import *
+from funcs import FUNC_DICT, FUNC_LIST, SYMPY_FUNC_CONVERTER
+import sympy
+
 INV_THRESHOLD = 0.001
 LOG_THRESHOLD = 0.001
 
 SYMBOL = 'x'
 
-""" Arbol """
-converter = {
-    'add': lambda x, y : x + y,
-    'sub': lambda x, y : x - y,
-    'mul': lambda x, y : x*y,
-    'div': lambda x, y : x/y,
-    'sqrt': lambda x : x**0.5,
-    'log': lambda x : sympy.log(x),
-    'abs': lambda x : abs(x),
-    'neg': lambda x : -x,
-    'inv': lambda x : 1/x,
-    'sin': lambda x : math.sin(x),
-    'cos': lambda x : math.cos(x),
-}
 class GPTree(Node):
     def __init__(self, value, left=None, right=None):
         super().__init__(value, left, right)
@@ -65,12 +52,7 @@ class GPTree(Node):
         return stack[0]
 
 # devuelve el arbol como una funcion de Lisp
-# pej 1+5*(1/x) -> add ( 1 mul ( inv ( x ) ) )
-
-
-#Formato aceptado por sympy
-#print(sympy.sympify('add(div(div(log(-0.183), abs(0.176)), abs(0.176)), add(div(div(log(-0.183), abs(0.176)), abs(0.176)), sqrt(mul(sqrt(neg(X0)), mul(max(-0.270, X0), log(-0.183))))))', locals=converter))
-
+# pej 1+5*(1/x) -> add (1,mul(5,inv(x)))
     def __str__(self):
         output, terminals = '', [0]
         for nod in self.preorder:
@@ -86,11 +68,13 @@ class GPTree(Node):
                     terminals[-1] -= 1                    
                     output += ')'
                     if terminals[-1] > 0: output += ','
-        return output#
+        return output
 
-    def simpify_str(self):
-        return sympify(str(self),locals=converter)
+# Devuelve el arbol en la simplificacion de sympy
+    def sympify_str(self):
+        return sympy.sympify(str(self),locals=SYMPY_FUNC_CONVERTER)
     
+# Devuelve un clon del arbol, mas eficiente y rapido que copy.deepcopy
     def clone(self):        
         other = GPTree(self.val)
 
@@ -112,6 +96,7 @@ class GPTree(Node):
                 stack2.append(node2.right)
         return other
 
+# Devuelve la profundidad del arbol, 1 unico nodo -> depth=0
     def depth(self):
         max_leaf_depth = -1
         current_nodes = [self]

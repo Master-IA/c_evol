@@ -1,8 +1,10 @@
 import numpy as np
+import math
 
 INV_THRESHOLD = 0.001
 LOG_THRESHOLD = 0.001
 SQRT_THRESHOLD = 0.001
+
 class Func():
 	def __init__(self, operator, name, arity):
 		self.operator = operator
@@ -44,4 +46,18 @@ FUNC_DICT = {
 	'max' : Func(np.maximum, "max", 2),
 	'min' : Func(np.minimum, "min", 2),
 	'sqrt' : Func(safe_sqrt, "sqrt", 1)
+}
+
+SYMPY_FUNC_CONVERTER = {
+    'add': lambda x, y : x + y,
+    'sub': lambda x, y : x - y,
+    'mul': lambda x, y : x*y,
+    'div': lambda x, y : x/y,
+    'sqrt': lambda x : x**0.5,
+    'log': lambda x : math.log(x),
+    'abs': lambda x : abs(x),
+    'neg': lambda x : -x,
+    'inv': lambda x : 1/x,
+    'sin': lambda x : math.sin(x),
+    'cos': lambda x : math.cos(x),
 }
