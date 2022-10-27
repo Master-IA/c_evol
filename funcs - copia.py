@@ -1,7 +1,8 @@
 from os import defpath
 from pprint import pprint
 from re import X
-from arbol import *
+from funcs import *
+from gptree import *
 import numpy as np
 import random
 import pandas as pd
@@ -67,7 +68,7 @@ def gen_tree(depth=0):
 
 def mutation_element(tree):
 	tree = tree.clone()
-	node=np.random.choice(list(tree)[0:])
+	node = random.choice(list(tree)[0:])
 	if node.is_func():
 		if node.arity()==2:
 				node.val=random.choice(FUNC_AR2_LIST)
@@ -79,8 +80,8 @@ def mutation_element(tree):
 
 def mutation_tree(tree):
 	tree = tree.clone()
-	node_parent=np.random.choice(list(tree)[1:])
-	node_parent.val=random.choice(FUNC_LIST)
+	node_parent = random.choice(list(tree)[1:])
+	node_parent.val = random.choice(FUNC_LIST)
 
 	node_parent.left=gen_tree(random.randint(MIN_DEPTH+1,MAX_DEPTH))
 	if node_parent.arity()==2:
@@ -92,8 +93,8 @@ def mutation_tree(tree):
 def crossover(tree1,tree2):
 	tree1, tree2 = tree1.clone(), tree2.clone()
 
-	node1=np.random.choice(list(tree1)[1:])
-	node2=np.random.choice(list(tree2)[1:])
+	node1=random.choice(list(tree1)[1:])
+	node2=random.choice(list(tree2)[1:])
 	
 	node1.val,node2.val=node2.val,node1.val
 	node1.right,node2.right=node2.right,node1.right
@@ -124,8 +125,8 @@ def crossover_single(tree1):
 	tree1 = tree1.clone()
 	tree2 = tournament(P, fitness, K, 1)[0].clone()
 
-	node1=np.random.choice(list(tree1)[1:])
-	node2=np.random.choice(list(tree2)[1:])
+	node1=random.choice(list(tree1)[1:])
+	node2=random.choice(list(tree2)[1:])
 	
 	node1.val=node2.val
 	node1.right=node2.right

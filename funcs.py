@@ -24,16 +24,9 @@ def safe_log(x1,x2=None):
 	with np.errstate(divide='ignore', invalid='ignore'):
 		return np.where(np.abs(x1) > LOG_THRESHOLD, np.log(np.abs(x1)), 0)
 
-# mejor usar un diccionario, no se puede indexar un enum por numero cuando no tienen valores numericos
-"""class Func_Enum(Enum):
-	ADD = Func(np.add, "add", 2)
-	SUB = Func(np.subtract, "sub", 2)
-	MUL = Func(np.multiply, "mul", 2)
-	INV = Func(safe_inv, "inv", 1)
-	LOG = Func(safe_log, "log", 1)
-ar1_list = [Func_Enum.INV, Func_Enum.LOG]
-ar2_list = [Func_Enum.ADD, Func_Enum.SUB, Func_Enum.MUL]
-"""
+FUNC_AR1_LIST = ['inv', 'log']
+FUNC_AR2_LIST = ['add', 'sub', 'mul']
+FUNC_LIST = FUNC_AR1_LIST + FUNC_AR2_LIST
 
 FUNC_DICT = {
 	'add' : Func(np.add, "add", 2),

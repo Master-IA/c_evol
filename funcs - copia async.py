@@ -4,7 +4,8 @@
 from os import defpath
 from pprint import pprint
 from re import X
-from arbol import *
+from gptree import *
+from funcs import *
 import numpy as np
 import random
 import pandas as pd

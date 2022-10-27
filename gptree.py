@@ -1,14 +1,10 @@
 from binarytree import Node
-from funcs import FUNC_DICT
+from funcs import FUNC_DICT, FUNC_LIST
 
 INV_THRESHOLD = 0.001
 LOG_THRESHOLD = 0.001
 
 SYMBOL = 'x'
-
-FUNC_AR1_LIST = ['inv', 'log']
-FUNC_AR2_LIST = ['add', 'sub', 'mul']
-FUNC_LIST = FUNC_AR1_LIST + FUNC_AR2_LIST
 
 """ Arbol """
 
@@ -93,3 +89,20 @@ class GPTree(Node):
                 stack1.append(node1.right)
                 stack2.append(node2.right)
         return other
+
+    def depth(self):
+        max_leaf_depth = -1
+        current_nodes = [self]
+
+        while len(current_nodes) > 0:
+            max_leaf_depth += 1
+            next_nodes = []
+
+            for node in current_nodes:
+                if node.left is not None:                    
+                    next_nodes.append(node.left)                
+                if node.right is not None:                    
+                    next_nodes.append(node.right)
+            current_nodes = next_nodes
+
+        return max_leaf_depth
