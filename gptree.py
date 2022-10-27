@@ -78,14 +78,18 @@ class GPTree(Node):
                 output += (str(nod.val) + '(')
                 terminals.append(nod.arity())
             else:
-                output += (str(nod.val) + ' ')
+                output += str(nod.val)          
                 terminals[-1] -= 1
+                if terminals[-1] > 0: output += ','
                 while terminals[-1] == 0:            
                     terminals.pop()
-                    terminals[-1] -= 1
+                    terminals[-1] -= 1                    
                     output += ')'
+                    if terminals[-1] > 0: output += ','
+        return output#
 
-        return sympify(output[:-1],locals=converter)
+    def simpify_str(self):
+        return sympify(str(self),locals=converter)
     
     def clone(self):        
         other = GPTree(self.val)
