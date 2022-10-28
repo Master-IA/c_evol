@@ -13,42 +13,54 @@ def mse(y, y_pred, w=None):
 def rmse(y, y_pred, w=None):
     return np.sqrt(mse(y, y_pred, w=w))
 
+def _to_vector(vec, size):
+    if vec.shape==(): return np.resize(vec,size)
+    else: return vec
+
+def _normalize_probs(probs):
+    return probs/sum(probs)
 
 class GP():
     def __init__(self, 
-                M=500, 
-                tourn=0.03, 
-                elitism=0.1, 
-                const_range=(-1,1), 
-                min_depth=1, 
-                max_depth=10,
-                func_list=FUNC_LIST,
-                prob_func=None,
-                prob_node_symb=0.5,
-                prob_node_func=0.5,  
-                probs_tree_op=[0.9,0.01,0.01], 
-                error_fun=rmse, 
-                depth_penalty=0, 
-                calc_weights=False):
+                M=500, # num de individuos en poblacion 
+                tourn=0.03, # % de M que se toma en cada torneo
+                elitism=0.1, # % de M que se selecciona por elitismo
+                const_range=(-1,1), # rango uniforme del que se toman terminales constantes
+                min_depth=1, # minima prof de crecimiento para arboles y subarboles, en prof previas se toman solo funciones
+                max_depth=10, # max prof de crecimiento para arboles y subarboles, cuando se alcanza se toman solo terminales
+                prob_node_symb=0.5, # probabilidad de que se asigne el simbolo al crear un nodo terminal
+                prob_node_func=0.5, # probabilidad de que se asigne una funcion (y no un terminal) al crear un nodo cualquiera
+                func_list=FUNC_LIST, # lista (de strings) de las funciones a elegir para los nodos
+                prob_func=None, # lista de probabilidades para las funciones, debe sumar 1 (las probs para cada aridad se ajustan de forma condicionada)
+                probs_tree_op=[0.9,0.01,0.01], # lista de probs para operaciones post seleccion (cruce, mut. arbol, mut.puntual), si tiene long 3 se ajusta la prob de inaccion
+                error_fun=rmse, # funcion de calculo de error (fitness a minimizar), toma vector de y, vector de y_pred
+                depth_penalty=0, # penalizacion en fitness por profundidad del arbol, aumenta fitness en un prof*penalizacion% (tomar valores < 0.001)
+                calc_weights=False # ponderar fitness punto a punto en funcion de ajuste global (NO USAR)
+                ):
 
         self.M = M
-        self.tourn, self.K_tourn = tourn, min([1,int(M*tourn)])
+        self.tourn, self.K_tourn = tourn, max([1,int(M*tourn)]) # si la poblacion no permite ese % de torneo se coge solo 1
         self.elitism, self.K_elite = elitism, int(M*elitism)        
         self.const_range = const_range
         self.min_depth, self.max_depth = min_depth, max_depth
+        self.prob_node_symb, self.prob_node_func = prob_node_symb, prob_node_func        
+
         self.func_list = func_list
         self.prob_func = prob_func if prob_func is not None else [1/len(func_list)]*len(func_list)
-        self.prob_node_symb, self.prob_node_func = prob_node_symb, prob_node_func        
-        self.probs_tree_op = probs_tree_op
-        if len(probs_tree_op)<4: self.probs_tree_op.append(1-sum(probs_tree_op))
-        self.error_fun, self.depth_penalty = error_fun, depth_penalty
-        self.calc_weights = calc_weights
-
+        # la lista de funciones se distingue a su vez por la aridad y se calculan las probs
         ar1_mask, ar2_mask = np.isin(self.func_list,FUNC_AR1_LIST), np.isin(self.func_list,FUNC_AR2_LIST)
         self.func_ar1_list, self.func_ar2_list = np.asarray(self.func_list)[ar1_mask], np.asarray(self.func_list)[ar2_mask]
-        self.prob_func_ar1, self.prob_func_ar2 = np.asarray(self.prob_func)[ar1_mask], np.asarray(self.prob_func)[ar2_mask]
-        self.prob_func_ar1, self.prob_func_ar2 = self.prob_func_ar1/sum(self.prob_func_ar1), self.prob_func_ar2/sum(self.prob_func_ar2)
+        self.prob_func_ar1, self.prob_func_ar2 = _normalize_probs(np.asarray(self.prob_func)[ar1_mask]), _normalize_probs(np.asarray(self.prob_func)[ar2_mask])
 
+
+        self.probs_tree_op = probs_tree_op
+        # si no se incluye se incorpora la prob de no hacer nada como 1 - la suma del resto
+        if len(probs_tree_op)<4: self.probs_tree_op.append(1-sum(probs_tree_op))
+
+        self.error_fun, self.depth_penalty = error_fun, depth_penalty
+        self.calc_weights, self.weights = calc_weights, None
+
+        
         self.P, self.fitness = None, None
         self.total_generations = 0
         self.best_fitness, self.mean_fitness = [], []
@@ -153,11 +165,21 @@ class GP():
     def eval_fitness(self, tree, x, y, w=None):
         y_pred = tree.calculate_recursive(x)
         return self.error_fun(y,y_pred,w=w)*(1+tree.depth()*self.depth_penalty)
-    
+
+    def eval_all_fitness(self, x, y):
+        N = len(x)
+        # matriz MxN de predicciones por cada arbol de cada y
+        y_preds = np.array([_to_vector(tree.calculate_recursive(x),N) for tree in self.P])
+        if self.calc_weights: # pesos -> calculo error de todos los arboles para cada y[i] individual
+            self.weights = np.asarray([self.error_fun(y_preds[:,i],y[i]) for i in range(len(y))])
+        # fitness -> calculo error arbol a arbol para todos los y, penalizando profundidad en un depth*penalty % adicional
+        fitness = np.apply_along_axis(self.error_fun,1, y_preds, y, self.weights)*(1+np.vectorize(GPTree.depth)(self.P)*self.depth_penalty)
+        return fitness
+
     def update_stats(self):
-        best_ind = np.argmin(self.fitness)
-        self.best_fitness.append(self.fitness[best_ind])
+        best_ind = np.argmin(self.fitness)        
         self.best_trees.append(self.P[best_ind])
+        self.best_fitness.append(self.fitness[best_ind])
         self.mean_fitness.append(self.fitness.mean())
 
         depths = np.asarray([tree.depth() for tree in self.P])
@@ -166,8 +188,8 @@ class GP():
 
     def get_stats(self):
         return {'total_generations': self.total_generations,
-                'best_fitness': np.asarray(self.best_fitness),
                 'best_trees': np.fromiter(self.best_trees, dtype=GPTree),
+                'best_fitness': np.asarray(self.best_fitness),
                 'mean_fitness': np.asarray(self.mean_fitness),
                 'P_max_depth': np.asarray(self.P_max_depth),
                 'P_mean_depth': np.asarray(self.P_mean_depth)
@@ -178,7 +200,7 @@ class GP():
         eval_fitness_vec=np.vectorize(self.eval_fitness, excluded=('x','y','w'))
         if not resume or (self.P is None or self.fitness is None):
             self.P = np.fromiter([self.gen_tree() for i in range(self.M)], dtype=GPTree)
-            self.fitness = eval_fitness_vec(self.P, x=x, y=y)
+            self.fitness = self.eval_all_fitness(x,y) #eval_fitness_vec(self.P, x=x, y=y)
             self.update_stats()
         range_gen = tqdm(range(int(generations)), desc="Progress") if progressbar else range(int(generations))
         for i in range_gen:
@@ -189,7 +211,7 @@ class GP():
             new_P.extend(self.tree_operate(tree) for tree in P_tournament)
 
             self.P = np.fromiter(new_P, dtype=GPTree)
-            self.fitness = eval_fitness_vec(self.P, x=x, y=y)
+            self.fitness = self.eval_all_fitness(x,y) #eval_fitness_vec(self.P, x=x, y=y)
             self.update_stats()
         self.total_generations += generations
         return self.get_stats()
