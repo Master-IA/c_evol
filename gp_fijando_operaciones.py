@@ -101,7 +101,10 @@ class GP():
             else:
                 n1 = GPTree(self.random_terminal())
         if n1.is_func():
-            n1.left=self.gen_tree(depth+1, False)
+            if root==True:
+                n1.left=GPTree(SYMBOL)
+            else:
+                n1.left=self.gen_tree(depth+1, False)
             if n1.arity()==2:
                 n1.right=self.gen_tree(depth+1,False)
         return n1
