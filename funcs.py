@@ -4,6 +4,8 @@ import math
 INV_THRESHOLD = 0.001
 LOG_THRESHOLD = 0.001
 SQRT_THRESHOLD = 0.001
+EXP_THRESHOLD = 1000000
+
 
 class Func():
 	def __init__(self, operator, name, arity):
@@ -32,6 +34,11 @@ def safe_div(x1,x2):
 	with np.errstate(divide='ignore', invalid='ignore'):
 		return np.where(np.abs(x2) > INV_THRESHOLD, x1/x2, x1)
 
+def safe_exp(x1,x2=None):
+	with np.errstate(divide='warn', invalid='raise'):
+			return np.where(np.abs(x1) > INV_THRESHOLD, np.exp(np.abs(x1)), 0)
+
+
 FUNC_AR1_LIST = ['inv', 'log','sqrt', 'exp', 'floor']	
 FUNC_AR2_LIST = ['add', 'sub', 'mul', 'div','max','min']
 FUNC_LIST = FUNC_AR1_LIST + FUNC_AR2_LIST
@@ -46,7 +53,7 @@ FUNC_DICT = {
 	'max' : Func(np.maximum, "max", 2),
 	'min' : Func(np.minimum, "min", 2),
 	'sqrt' : Func(safe_sqrt, "sqrt", 1),
-	'exp': Func(np.exp, "exp", 1),
+	'exp': Func(safe_exp, "exp", 1),
 	'floor': Func(np.floor, "floor", 1)
 }
 
