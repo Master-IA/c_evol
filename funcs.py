@@ -35,7 +35,7 @@ def safe_div(x1,x2):
 		return np.where(np.abs(x2) > INV_THRESHOLD, x1/x2, x1)
 
 def safe_exp(x1,x2=None):
-	with np.errstate(divide='warn', invalid='raise'):
+	with np.errstate(divide='ignore', invalid='ignore'):
 			return np.where(np.abs(x1) > INV_THRESHOLD, np.exp(np.abs(x1)), 0)
 
 
