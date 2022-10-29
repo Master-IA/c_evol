@@ -13,11 +13,15 @@ def mse(y, y_pred, w=None):
 def rmse(y, y_pred, w=None):
     return np.sqrt(mse(y, y_pred, w=w))
 
+# para que tree.calculate_recursive(x) siempre devuelva vector de len(x)
+# ya que cuando es una constante numpy lo simplifica a un solo float
 def _to_vector(vec, size):
     if vec.shape==(): return np.resize(vec,size)
     else: return vec
 
+# para normalizar pesos a probs que sumen 1
 def _normalize_probs(probs):
+    probs=np.asarray(probs)
     return probs/sum(probs)
 
 class GP():
@@ -46,7 +50,7 @@ class GP():
         self.prob_node_symb, self.prob_node_func = prob_node_symb, prob_node_func        
 
         self.func_list = func_list
-        self.prob_func = prob_func if prob_func is not None else [1/len(func_list)]*len(func_list)
+        self.prob_func = _normalize_probs(prob_func) if prob_func is not None else _normalize_probs(np.ones(len(func_list)))
         # la lista de funciones se distingue a su vez por la aridad y se calculan las probs
         ar1_mask, ar2_mask = np.isin(self.func_list,FUNC_AR1_LIST), np.isin(self.func_list,FUNC_AR2_LIST)
         self.func_ar1_list, self.func_ar2_list = np.asarray(self.func_list)[ar1_mask], np.asarray(self.func_list)[ar2_mask]
@@ -66,6 +70,7 @@ class GP():
         self.best_fitness, self.mean_fitness = [], []
         self.best_trees = []
         self.P_max_depth, self.P_mean_depth = [], []
+
 
     def random_terminal(self):
         if random.random()<self.prob_node_symb:
