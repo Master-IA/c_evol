@@ -116,11 +116,12 @@ class GP():
         return np.fromiter(winners, dtype=GPTree)
 
 
+
     def crossover(self, tree1, tree2):
         tree1, tree2 = tree1.clone(), tree2.clone()
 
-        node1=random.choice(list(tree1)[1:])
-        node2=random.choice(list(tree2)[1:])
+        node1=tree1.random_node(skip_root=True, depth_weighted=True) #random.choice(list(tree1)[1:])
+        node2=tree2.random_node(skip_root=True, depth_weighted=True) #random.choice(list(tree2)[1:])
         
         node1.val,node2.val=node2.val,node1.val
         node1.right,node2.right=node2.right,node1.right
@@ -132,8 +133,8 @@ class GP():
         tree1 = tree1.clone()
         tree2 = self.tournament(1)[0].clone()
 
-        node1=random.choice(list(tree1)[1:])
-        node2=random.choice(list(tree2)[1:])
+        node1=tree1.random_node(skip_root=True, depth_weighted=True) #random.choice(list(tree1)[1:])
+        node2=tree2.random_node(skip_root=True, depth_weighted=True) #random.choice(list(tree2)[1:])
         
         node1.val=node2.val
         node1.right=node2.right
@@ -143,7 +144,7 @@ class GP():
 
     def mutation_tree(self, tree):
         tree = tree.clone()
-        node_parent=random.choice(list(tree)[1:])
+        node_parent=tree.random_node(skip_root=True, depth_weighted=True) #random.choice(list(tree)[1:])
         node_parent.val=self.random_func()
     
         node_parent.left=self.gen_tree(random.randint(self.min_depth+1,self.max_depth))
@@ -156,7 +157,7 @@ class GP():
 
     def mutation_element(self, tree):
         tree = tree.clone()
-        node=random.choice(list(tree)[0:])
+        node=tree.random_node(skip_root=True, depth_weighted=True) #random.choice(list(tree)[0:])
         if node.is_func(): node.val=self.random_func(arity=node.arity())
         else: node.val=self.random_terminal()
         return tree
