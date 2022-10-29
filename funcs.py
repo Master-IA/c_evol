@@ -58,6 +58,6 @@ SYMPY_FUNC_CONVERTER = {
     'abs': lambda x : abs(x),
     'neg': lambda x : -x,
     #'inv': lambda x : 1/x,
-    'sin': lambda x : math.sin(x),
-    'cos': lambda x : math.cos(x),
+    #'sin': lambda x : math.sin(x),
+    #'cos': lambda x : math.cos(x),
 }
