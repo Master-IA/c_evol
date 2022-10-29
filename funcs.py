@@ -32,7 +32,7 @@ def safe_div(x1,x2):
 	with np.errstate(divide='ignore', invalid='ignore'):
 		return np.where(np.abs(x2) > INV_THRESHOLD, x1/x2, x1)
 
-FUNC_AR1_LIST = ['inv', 'log','sqrt']	
+FUNC_AR1_LIST = ['inv', 'log','sqrt', 'exp', 'floor']	
 FUNC_AR2_LIST = ['add', 'sub', 'mul', 'div','max','min']
 FUNC_LIST = FUNC_AR1_LIST + FUNC_AR2_LIST
 
@@ -45,7 +45,9 @@ FUNC_DICT = {
 	'log' : Func(safe_log, "log", 1),
 	'max' : Func(np.maximum, "max", 2),
 	'min' : Func(np.minimum, "min", 2),
-	'sqrt' : Func(safe_sqrt, "sqrt", 1)
+	'sqrt' : Func(safe_sqrt, "sqrt", 1),
+	'exp': Func(np.exp, "exp", 1),
+	'floor': Func(np.floor, "floor", 1)
 }
 
 SYMPY_FUNC_CONVERTER = {
