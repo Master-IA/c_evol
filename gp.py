@@ -13,11 +13,15 @@ def mse(y, y_pred, w=None):
 def rmse(y, y_pred, w=None):
     return np.sqrt(mse(y, y_pred, w=w))
 
+# para que tree.calculate_recursive(x) siempre devuelva vector de len(x)
+# ya que cuando es una constante numpy lo simplifica a un solo float
 def _to_vector(vec, size):
     if vec.shape==(): return np.resize(vec,size)
     else: return vec
 
+# para normalizar pesos a probs que sumen 1
 def _normalize_probs(probs):
+    probs=np.asarray(probs)
     return probs/sum(probs)
 
 class GP():
@@ -46,7 +50,7 @@ class GP():
         self.prob_node_symb, self.prob_node_func = prob_node_symb, prob_node_func        
 
         self.func_list = func_list
-        self.prob_func = prob_func if prob_func is not None else [1/len(func_list)]*len(func_list)
+        self.prob_func = _normalize_probs(prob_func) if prob_func is not None else _normalize_probs(np.ones(len(func_list)))
         # la lista de funciones se distingue a su vez por la aridad y se calculan las probs
         ar1_mask, ar2_mask = np.isin(self.func_list,FUNC_AR1_LIST), np.isin(self.func_list,FUNC_AR2_LIST)
         self.func_ar1_list, self.func_ar2_list = np.asarray(self.func_list)[ar1_mask], np.asarray(self.func_list)[ar2_mask]
@@ -66,6 +70,7 @@ class GP():
         self.best_fitness, self.mean_fitness = [], []
         self.best_trees = []
         self.P_max_depth, self.P_mean_depth = [], []
+
 
     def random_terminal(self):
         if random.random()<self.prob_node_symb:
@@ -111,11 +116,12 @@ class GP():
         return np.fromiter(winners, dtype=GPTree)
 
 
+
     def crossover(self, tree1, tree2):
         tree1, tree2 = tree1.clone(), tree2.clone()
 
-        node1=random.choice(list(tree1)[1:])
-        node2=random.choice(list(tree2)[1:])
+        node1=tree1.random_node(skip_root=True, depth_weighted=True) #random.choice(list(tree1)[1:])
+        node2=tree2.random_node(skip_root=True, depth_weighted=True) #random.choice(list(tree2)[1:])
         
         node1.val,node2.val=node2.val,node1.val
         node1.right,node2.right=node2.right,node1.right
@@ -127,8 +133,8 @@ class GP():
         tree1 = tree1.clone()
         tree2 = self.tournament(1)[0].clone()
 
-        node1=random.choice(list(tree1)[1:])
-        node2=random.choice(list(tree2)[1:])
+        node1=tree1.random_node(skip_root=True, depth_weighted=True) #random.choice(list(tree1)[1:])
+        node2=tree2.random_node(skip_root=True, depth_weighted=True) #random.choice(list(tree2)[1:])
         
         node1.val=node2.val
         node1.right=node2.right
@@ -138,7 +144,7 @@ class GP():
 
     def mutation_tree(self, tree):
         tree = tree.clone()
-        node_parent=random.choice(list(tree)[1:])
+        node_parent=tree.random_node(skip_root=True, depth_weighted=True) #random.choice(list(tree)[1:])
         node_parent.val=self.random_func()
     
         node_parent.left=self.gen_tree(random.randint(self.min_depth+1,self.max_depth))
@@ -151,7 +157,7 @@ class GP():
 
     def mutation_element(self, tree):
         tree = tree.clone()
-        node=random.choice(list(tree)[0:])
+        node=tree.random_node(skip_root=True, depth_weighted=True) #random.choice(list(tree)[0:])
         if node.is_func(): node.val=self.random_func(arity=node.arity())
         else: node.val=self.random_terminal()
         return tree

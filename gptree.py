@@ -1,5 +1,6 @@
 from binarytree import Node
 from funcs import FUNC_DICT, FUNC_LIST, SYMPY_FUNC_CONVERTER
+import random
 import sympy
 
 INV_THRESHOLD = 0.001
@@ -69,6 +70,12 @@ class GPTree(Node):
                     output += ')'
                     if terminals[-1] > 0: output += ','
         return output
+    
+    def _repr_svg_(self):
+        return str(self)
+
+    def graphviz(self, *args, **kwargs) :
+        return super().graphviz(*args, **kwargs)
 
 # Devuelve el arbol en la simplificacion de sympy
     def sympify_str(self):
@@ -113,3 +120,14 @@ class GPTree(Node):
             current_nodes = next_nodes
 
         return max_leaf_depth
+
+    def random_node(self, skip_root=False, depth_weighted=True):
+        if depth_weighted:
+            first_depth = 1 if skip_root else 0
+            tree_bydepth = self.levels[first_depth:]
+            weights = range(1, len(tree_bydepth)+1)
+            node = random.choice(random.choices(tree_bydepth, weights=weights)[0])
+        else:
+            first = 1 if skip_root else 0
+            node = random.choice(list(self)[first:])
+        return node
