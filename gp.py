@@ -29,7 +29,7 @@ class GP():
                 M=500,                          # num de individuos en poblacion 
                 tourn=0.03,                     # % de M que se toma en cada torneo
                 elitism=0.1,                    # % de M que se selecciona por elitismo
-                const_range=(-1,1),             # rango uniforme del que se toman terminales constantes
+                const_range=(0,2),             # rango uniforme del que se toman terminales constantes
                 min_depth=1,                    # minima prof de crecimiento para arboles y subarboles, en prof previas se toman solo funciones
                 max_depth=10,                   # max prof de crecimiento para arboles y subarboles, cuando se alcanza se toman solo terminales
                 prob_node_symb=0.5,             # probabilidad de que se asigne el simbolo al crear un nodo terminal

@@ -88,7 +88,6 @@ class GP():
             if depth==0:
                 if root==True:
                     n1 = GPTree(FUNC_AR2_LIST[3])
-                    n1.left=GPTree(SYMBOL)
                 else:
                     n1 = GPTree(self.random_func(arity=2))
             else:
@@ -101,10 +100,10 @@ class GP():
             else:
                 n1 = GPTree(self.random_terminal())
         if n1.is_func():
-            if root==True:
+            """if root==True:
                 n1.left=GPTree(SYMBOL)
-            else:
-                n1.left=self.gen_tree(depth+1, False)
+            else:"""
+            n1.left=self.gen_tree(depth+1, False)
             if n1.arity()==2:
                 n1.right=self.gen_tree(depth+1,False)
         return n1
@@ -207,8 +206,8 @@ class GP():
 
     def get_stats(self):
         return {'total_generations': self.total_generations,
-                'best_trees': np.fromiter(self.best_trees, dtype=GPTree),
                 'best_fitness': np.asarray(self.best_fitness),
+                'best_trees': np.fromiter(self.best_trees, dtype=GPTree),
                 'mean_fitness': np.asarray(self.mean_fitness),
                 'best_fitness_p': np.asarray(self.best_fitness_p),
                 'mean_fitness_p': np.asarray(self.mean_fitness_p),
