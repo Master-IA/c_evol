@@ -237,8 +237,3 @@ class GP():
         return self.get_stats()
 
 
-
-
-
-
-    
