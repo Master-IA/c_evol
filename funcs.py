@@ -40,7 +40,7 @@ def safe_exp(x1,x2=None):
 
 
 FUNC_AR1_LIST = ['inv', 'log','sqrt', 'exp', 'floor']	
-FUNC_AR2_LIST = ['add', 'sub', 'mul', 'div','max','min']
+FUNC_AR2_LIST = ['add', 'sub', 'mul', 'div', 'max', 'min']
 FUNC_LIST = FUNC_AR1_LIST + FUNC_AR2_LIST
 
 FUNC_DICT = {

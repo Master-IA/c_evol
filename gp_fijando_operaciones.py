@@ -83,11 +83,13 @@ class GP():
         elif arity == 2: return np.random.choice(self.func_ar2_list, p=self.prob_func_ar2)
         else: return np.random.choice(self.func_list, p=self.prob_func)
 
-    def gen_tree(self, depth=0, root=False):
+    def gen_tree(self, depth=0, root=False, root_right=False):
         if depth<self.min_depth:
             if depth==0:
                 if root==True:
                     n1 = GPTree(FUNC_AR2_LIST[3])
+                elif root_right==True:
+                    n1 = GPTree(FUNC_AR1_LIST[1])
                 else:
                     n1 = GPTree(self.random_func(arity=2))
             else:
@@ -100,12 +102,15 @@ class GP():
             else:
                 n1 = GPTree(self.random_terminal())
         if n1.is_func():
-            """if root==True:
-                n1.left=GPTree(SYMBOL)
-            else:"""
-            n1.left=self.gen_tree(depth+1, False)
+            if root==True:
+                n1.left = GPTree(SYMBOL)
+            else:
+                n1.left=self.gen_tree(depth+1, False, False)
             if n1.arity()==2:
-                n1.right=self.gen_tree(depth+1,False)
+                if root==True:
+                    n1.right=self.gen_tree(depth+1,False, True)
+                else:    
+                    n1.right=self.gen_tree(depth+1,False, False)
         return n1
 
 
@@ -153,9 +158,9 @@ class GP():
         node_parent=tree.random_node(skip_root=True, depth_weighted=True) #random.choice(list(tree)[1:])
         node_parent.val=self.random_func()
     
-        node_parent.left=self.gen_tree(random.randint(self.min_depth+1,self.max_depth), False)
+        node_parent.left=self.gen_tree(random.randint(self.min_depth+1,self.max_depth), False, False)
         if node_parent.arity()==2:
-            node_parent.right=self.gen_tree(random.randint(self.min_depth+1,self.max_depth), False)
+            node_parent.right=self.gen_tree(random.randint(self.min_depth+1,self.max_depth), False, False)
         else:
             node_parent.right=None
         return tree
