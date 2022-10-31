@@ -30,7 +30,7 @@ class GP():
                 tourn=0.03,                     # % de M que se toma en cada torneo
                 elitism=0.1,                    # % de M que se selecciona por elitismo
                 const_range=(0,2),             # rango uniforme del que se toman terminales constantes
-                min_depth=1,                    # minima prof de crecimiento para arboles y subarboles, en prof previas se toman solo funciones
+                min_depth=2,                    # minima prof de crecimiento para arboles y subarboles, en prof previas se toman solo funciones
                 max_depth=10,                   # max prof de crecimiento para arboles y subarboles, cuando se alcanza se toman solo terminales
                 prob_node_symb=0.5,             # probabilidad de que se asigne el simbolo al crear un nodo terminal
                 prob_node_func=0.5,             # probabilidad de que se asigne una funcion (y no un terminal) al crear un nodo cualquiera
@@ -88,10 +88,11 @@ class GP():
             if depth==0:
                 if root==True:
                     n1 = GPTree(FUNC_AR2_LIST[3])
-                elif root_right==True:
-                    n1 = GPTree(FUNC_AR1_LIST[1])
                 else:
                     n1 = GPTree(self.random_func(arity=2))
+            
+            elif root_right==True:
+                n1 = GPTree(FUNC_AR1_LIST[1])
             else:
                 n1 = GPTree(self.random_func())
         elif depth>=self.max_depth:
@@ -131,8 +132,8 @@ class GP():
     def crossover(self, tree1, tree2):
         tree1, tree2 = tree1.clone(), tree2.clone()
 
-        node1=tree1.random_node(skip_root=True, depth_weighted=True) #random.choice(list(tree1)[1:])
-        node2=tree2.random_node(skip_root=True, depth_weighted=True) #random.choice(list(tree2)[1:])
+        node1=tree1.random_node(skip_root=True, first_depth = 2 ,depth_weighted=True) #random.choice(list(tree1)[1:])
+        node2=tree2.random_node(skip_root=True, first_depth = 2 ,depth_weighted=True) #random.choice(list(tree2)[1:])
         
         node1.val,node2.val=node2.val,node1.val
         node1.right,node2.right=node2.right,node1.right
@@ -144,8 +145,8 @@ class GP():
         tree1 = tree1.clone()
         tree2 = self.tournament(1)[0].clone()
 
-        node1=tree1.random_node(skip_root=True, depth_weighted=True) #random.choice(list(tree1)[1:])
-        node2=tree2.random_node(skip_root=True, depth_weighted=True) #random.choice(list(tree2)[1:])
+        node1=tree1.random_node(skip_root=True, first_depth = 2 ,depth_weighted=True) #random.choice(list(tree1)[1:])
+        node2=tree2.random_node(skip_root=True, first_depth = 2 ,depth_weighted=True) #random.choice(list(tree2)[1:])
         
         node1.val=node2.val
         node1.right=node2.right
@@ -155,7 +156,7 @@ class GP():
 
     def mutation_tree(self, tree):
         tree = tree.clone()
-        node_parent=tree.random_node(skip_root=True, depth_weighted=True) #random.choice(list(tree)[1:])
+        node_parent=tree.random_node(skip_root=True, first_depth = 2 ,depth_weighted=True) #random.choice(list(tree)[1:])
         node_parent.val=self.random_func()
     
         node_parent.left=self.gen_tree(random.randint(self.min_depth+1,self.max_depth), False, False)
@@ -168,7 +169,7 @@ class GP():
 
     def mutation_element(self, tree):
         tree = tree.clone()
-        node=tree.random_node(skip_root=True, depth_weighted=True) #random.choice(list(tree)[0:])
+        node=tree.random_node(skip_root=True, first_depth = 2 ,depth_weighted=True) #random.choice(list(tree)[0:])
         if node.is_func(): node.val=self.random_func(arity=node.arity())
         else: node.val=self.random_terminal()
         return tree

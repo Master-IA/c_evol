@@ -121,11 +121,13 @@ class GPTree(Node):
 
         return max_leaf_depth
 
-    def random_node(self, skip_root=False, depth_weighted=True):
+    def random_node(self, skip_root=False, first_depth = 1 ,depth_weighted=True):
         if depth_weighted:
-            first_depth = 1 if skip_root else 0
+            #first_depth = 2 if skip_root else 0
             tree_bydepth = self.levels[first_depth:]
-            weights = range(1, len(tree_bydepth)+1)
+            
+            weights = range(2, len(tree_bydepth)+first_depth)
+            
             node = random.choice(random.choices(tree_bydepth, weights=weights)[0])
         else:
             first = 1 if skip_root else 0
