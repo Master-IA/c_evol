@@ -1,8 +1,13 @@
+# Definicion de la clase principal de programacion genetica
+# Implementa todas las funciones necesarias para poblaciones de la clase GPTree
+
 from funcs import FUNC_LIST, FUNC_AR1_LIST, FUNC_AR2_LIST
 from gptree import *
 from tqdm import tqdm 
 import numpy as np
 import random
+
+### Funciones de error (toman vectores numpy)
 
 def mae(y, y_pred, w=None):
     return np.average(np.abs(y-y_pred), weights=w)
@@ -24,6 +29,7 @@ def _normalize_probs(probs):
     probs=np.asarray(probs)
     return probs/sum(probs)
 
+# Clase de programador genetico, contiene todos los atributos y funciones necesarias
 class GP():
     def __init__(self, 
                 M=500,                          # num de individuos en poblacion 
@@ -63,7 +69,6 @@ class GP():
 
         self.error_fun, self.depth_penalty = error_fun, depth_penalty
         self.calc_weights, self.weights = calc_weights, None
-
         
         self.P, self.fitness, self.fitness_p = None, None, None
         self.total_generations = 0
@@ -71,18 +76,20 @@ class GP():
         self.best_trees, self.best_trees_p = [], []
         self.P_max_depth, self.P_mean_depth = [], []
 
-
+# Devuelve un valor aleatorio para un nodo terminal (SYMBOL o una constante aleatoria en un rango)
     def random_terminal(self):
         if random.random()<self.prob_node_symb:
             return SYMBOL
         else:
             return np.random.uniform(self.const_range[0],self.const_range[1])
-    
+
+# Devuelve una funcion aleatoria, en funcion de la aridad si se especifica
     def random_func(self, arity=None):
         if arity == 1: return np.random.choice(self.func_ar1_list, p=self.prob_func_ar1)
         elif arity == 2: return np.random.choice(self.func_ar2_list, p=self.prob_func_ar2)
         else: return np.random.choice(self.func_list, p=self.prob_func)
 
+# Genera un arbol (o subarbol) aleatorio entre las profundidades min y max empezando desde cierta profundidad
     def gen_tree(self, depth=0):
         if depth<self.min_depth:
             if depth==0:
@@ -102,11 +109,11 @@ class GP():
                 n1.right=self.gen_tree(depth+1)
         return n1
 
-
+# Devuelve la elite de una poblacion
     def fill_K_best(self):
         return self.P[np.argpartition(self.fitness_p, self.K_elite)[:self.K_elite]]
 
-
+# Hace N torneos selectivos en funcion de la poblacion y fitness (penalizado) actual
     def tournament(self, N):
         winners = []
         for i in range(N):		
@@ -115,36 +122,36 @@ class GP():
             winners.append(winner)
         return np.fromiter(winners, dtype=GPTree)
 
-
-
+# Realiza un cruce entre dos arboles y devuelve dos arboles, un hijo por cada uno
     def crossover(self, tree1, tree2):
         tree1, tree2 = tree1.clone(), tree2.clone()
 
-        node1=tree1.random_node(skip_root=True, depth_weighted=True) #random.choice(list(tree1)[1:])
-        node2=tree2.random_node(skip_root=True, depth_weighted=True) #random.choice(list(tree2)[1:])
+        node1=tree1.random_node(skip_root=True, depth_weighted=True)
+        node2=tree2.random_node(skip_root=True, depth_weighted=True)
         
         node1.val,node2.val=node2.val,node1.val
         node1.right,node2.right=node2.right,node1.right
         node1.left,node2.left=node2.left,node1.left
         return [tree1, tree2]
 
-
+# Realiza un cruce entre un arbol y otro tomado de un torneo como donante
+# Se devuelve solo el hijo que injerta en el primero un subarbol del segundo
     def crossover_single(self, tree1):
         tree1 = tree1.clone()
         tree2 = self.tournament(1)[0].clone()
 
-        node1=tree1.random_node(skip_root=True, depth_weighted=True) #random.choice(list(tree1)[1:])
-        node2=tree2.random_node(skip_root=True, depth_weighted=True) #random.choice(list(tree2)[1:])
+        node1=tree1.random_node(skip_root=True, depth_weighted=True)
+        node2=tree2.random_node(skip_root=True, depth_weighted=True)
         
         node1.val=node2.val
         node1.right=node2.right
         node1.left=node2.left
         return tree1
 
-
+# Mutacion de subarbol, escogiendo un nodo no raiz al azar 
     def mutation_tree(self, tree):
         tree = tree.clone()
-        node_parent=tree.random_node(skip_root=True, depth_weighted=True) #random.choice(list(tree)[1:])
+        node_parent=tree.random_node(skip_root=True, depth_weighted=True)
         node_parent.val=self.random_func()
     
         node_parent.left=self.gen_tree(random.randint(self.min_depth+1,self.max_depth))
@@ -154,24 +161,27 @@ class GP():
             node_parent.right=None
         return tree
     
-
+# Mutacion puntual, cambiando un solo nodo por una funcion de misma aridad si es funcion y por otro terminal si no
     def mutation_element(self, tree):
         tree = tree.clone()
-        node=tree.random_node(skip_root=True, depth_weighted=True) #random.choice(list(tree)[0:])
+        node=tree.random_node(skip_root=True, depth_weighted=True)
         if node.is_func(): node.val=self.random_func(arity=node.arity())
         else: node.val=self.random_terminal()
         return tree
 
+# Selecciona una operacion de arbol aleatoriamente con las probabilidades ponderadas
     def tree_operate(self, tree):
         tree_op = np.random.choice(
             [self.crossover_single, self.mutation_tree, self.mutation_element, GPTree.clone], 
             p=self.probs_tree_op)
         return tree_op(tree)
 
+# Evalua el fitness de un arbol
     def eval_fitness(self, tree, x, y, w=None):
         y_pred = tree.calculate_recursive(x)
         return self.error_fun(y,y_pred,w=w)*(1+tree.depth()*self.depth_penalty)
 
+#Evalua el fitness de toda la poblacion actual, tanto normal como penalizando por profundidad
     def eval_all_fitness(self, x, y):
         N = len(x)
         # matriz MxN de predicciones por cada arbol de cada y
@@ -183,6 +193,7 @@ class GP():
         fitness_p = np.apply_along_axis(self.error_fun,1, y_preds, y, self.weights)*(1+np.vectorize(GPTree.depth)(self.P)*self.depth_penalty)
         return fitness, fitness_p
 
+# Actualiza las estadisticas del arbol
     def update_stats(self):
         best_ind = np.argmin(self.fitness)        
         self.best_trees.append(self.P[best_ind])
@@ -198,6 +209,7 @@ class GP():
         self.P_max_depth.append(depths.max())
         self.P_mean_depth.append(depths.mean())
 
+# Devuelve las estadisticas del arbol
     def get_stats(self):
         return {'total_generations': self.total_generations,
                 'best_trees': np.fromiter(self.best_trees, dtype=GPTree),
@@ -209,7 +221,7 @@ class GP():
                 'P_mean_depth': np.asarray(self.P_mean_depth)
                 }
 
-
+# Realiza una ejecucion completa del programa por tantas generaciones como se quiera
     def execute(self, x, y, generations=100, progressbar = True, resume=False):
         if not resume or (self.P is None or self.fitness is None):
             self.P = np.fromiter([self.gen_tree() for i in range(self.M)], dtype=GPTree)
